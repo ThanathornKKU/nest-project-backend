@@ -1,0 +1,52 @@
+# ----------------------------------
+# Type ของ Product
+# ----------------------------------
+type Product {
+  _id: ID!                 # ID ของ product
+  name: String!            # ชื่อสินค้า
+  description: String      # คำอธิบายสินค้า (ไม่จำเป็นต้องมี)
+  price: Float!            # ราคาสินค้า
+}
+
+# ----------------------------------
+# Input type สำหรับสร้าง Product
+# ----------------------------------
+input CreateProductInput {
+  name: String!            # ชื่อสินค้า (required)
+  description: String      # คำอธิบายสินค้า (optional)
+  price: Float!            # ราคาสินค้า (required)
+}
+
+# ----------------------------------
+# Input type สำหรับแก้ไข Product
+# ----------------------------------
+input UpdateProductInput {
+  name: String            # แก้ไขชื่อสินค้า (optional)
+  description: String     # แก้ไขคำอธิบายสินค้า (optional)
+  price: Float            # แก้ไขราคาสินค้า (optional)
+}
+
+# ----------------------------------
+# Query สำหรับดึงข้อมูล Product
+# ----------------------------------
+type Query {
+  # ดึง product ทั้งหมด
+  products: [Product!]!
+
+  # ดึง product ตาม ID
+  product(id: ID!): Product
+}
+
+# ----------------------------------
+# Mutation สำหรับสร้าง/แก้ไข/ลบ Product
+# ----------------------------------
+type Mutation {
+  # สร้าง product ใหม่
+  createProduct(input: CreateProductInput!): Product!
+
+  # แก้ไข product ตาม ID
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
+
+  # ลบ product ตาม ID
+  deleteProduct(id: ID!): Boolean! 
+}

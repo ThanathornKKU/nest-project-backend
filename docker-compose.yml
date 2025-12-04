@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    container_name: mongo-nest-project
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      # - '27017:27017'
+      - '27018:27017'
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:latest
+    container_name: redis-nest-project
+    ports:
+      - '6379:6379'
+    restart: always
+
+volumes:
+  mongo-data:
+      driver: local
