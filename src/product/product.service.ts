@@ -9,6 +9,7 @@ import { Product } from './schema/product.schema';
 import { CreateProductInput } from './dto/create-product.input';
 import { UpdateProductInput } from './dto/update-product.input';
 import { RedisService } from '../redis/redis.service';
+import { KafkaService } from '../kafka/kafka.producer.service';
 
 @Injectable()
 export class ProductsService {
@@ -18,9 +19,9 @@ export class ProductsService {
   constructor(
     // Inject Mongoose model สำหรับ query DB
     @InjectModel(Product.name) private productModel: Model<Product>,
-
-    // Inject RedisService (คุณต้อง export RedisService จาก RedisModule)
+    // Inject RedisService และ KafkaService
     private readonly redis: RedisService,
+    private readonly kafka: KafkaService,
   ) {}
 
   /**
@@ -31,7 +32,6 @@ export class ProductsService {
    */
   async findAll(): Promise<Product[]> {
     const cacheKey = 'products';
-
     // ลองดึงจาก Redis ก่อน
     const cached = await this.redis.get<Product[]>(cacheKey);
     console.log('✅ CACHE GET products:', cached);
@@ -43,7 +43,7 @@ export class ProductsService {
     // ถ้าไม่มีใน cache → query จาก MongoDB
     const products = await this.productModel.find();
 
-    // เก็บผลลัพธ์ลง Redis ระบุเวลาหมดอายุด้วย LIST_CACHE_TTL วินาที
+    // เก็บลง Redis ระบุเวลาหมดอายุด้วย LIST_CACHE_TTL วินาที
     await this.redis.set(cacheKey, products, this.LIST_CACHE_TTL);
     console.log('📌 CACHE SET products:', products);
 
@@ -57,17 +57,15 @@ export class ProductsService {
    */
   async findOne(id: string): Promise<Product> {
     const cacheKey = `product:${id}`;
-
     // ลองดึงจาก Redis ก่อน
     const cached = await this.redis.get<Product>(cacheKey);
     console.log('✅ CACHE GET product:', cached);
+
     if (cached) {
       return cached;
     }
-
     // ถ้าไม่มีใน cache → query DB
     const product = await this.productModel.findById(id);
-
     if (!product) {
       // ถ้าไม่มี product -> throw NotFound
       throw new NotFoundException(`Product ${id} not found`);
@@ -88,9 +86,8 @@ export class ProductsService {
    * - (เลือก) สามารถ publish event ไป Kafka ได้ที่นี่ด้วย ถ้ามี
    */
   async create(input: CreateProductInput): Promise<Product> {
-    // ตรวจสอบชื่อซ้ำก่อน (เพื่อให้ user ได้ error ที่ชัดเจน)
+    // ตรวจสอบชื่อซ้ำก่อน
     const existing = await this.productModel.findOne({ name: input.name });
-    // ถ้ามีชื่อซ้ำ
     if (existing) {
       throw new BadRequestException('Product name already exists');
     }
@@ -101,6 +98,9 @@ export class ProductsService {
     // ล้าง cache list เพื่อให้ไปดึงข้อมูลจาก DB ใหม่
     await this.redis.delete('products');
     console.log('❌ CACHE DELETE products:', 'products');
+
+    // ส่ง Event Kafka
+    await this.kafka.emit('Product-Created', created);
 
     return created;
   }
@@ -120,6 +120,7 @@ export class ProductsService {
     if (existing) {
       throw new BadRequestException('Product name already exists');
     }
+
     // update แบบ findByIdAndUpdate เพื่อคืนค่าหลังแก้ไข (new: true)
     const updated = await this.productModel.findByIdAndUpdate(id, input, {
       new: true,
@@ -135,6 +136,9 @@ export class ProductsService {
     await this.redis.delete(`product:${id}`);
     console.log('❌ CACHE DELETE products:', 'products');
     console.log('❌ CACHE DELETE product:', `product:${id}`);
+
+    // ส่ง Event Kafka
+    await this.kafka.emit('Product-Updated', updated);
 
     return updated;
   }
@@ -156,6 +160,9 @@ export class ProductsService {
     await this.redis.delete(`product:${id}`);
     console.log('❌ CACHE DELETE products:', 'products');
     console.log('❌ CACHE DELETE product:', `product:${id}`);
+
+    // ส่ง Event Kafka
+    await this.kafka.emit('Product-Deleted', { id });
 
     return true;
   }

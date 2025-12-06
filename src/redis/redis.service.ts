@@ -22,12 +22,12 @@ export class RedisService implements OnModuleDestroy {
 
     // Listener: ทำงานเมื่อเชื่อมต่อ Redis ได้สำเร็จ
     this.client.on('connect', () => {
-      console.log('✅ Redis connected');
+      console.log('✅ [Redis] connected');
     });
 
     // Listener: ทำงานเมื่อเกิดข้อผิดพลาดกับ Redis connection
     this.client.on('error', (err) => {
-      console.error('❌ Redis connection error:', err);
+      console.error('❌ [Redis] connection error:', err);
     });
   }
 
