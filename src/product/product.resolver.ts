@@ -28,7 +28,6 @@ export class ProductsResolver {
     @Args('id', { type: () => ID }) id: string,
     @Args('input') input: UpdateProductInput,
   ) {
-    // ส่ง id แยกกับ input เข้า service
     return this.productsService.update(id, input);
   }
 

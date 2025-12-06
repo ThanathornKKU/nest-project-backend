@@ -3,8 +3,8 @@ version: '3.8'
 services:
   mongo:
     image: mongo
-    restart: always
     container_name: mongo-nest-project
+    restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
@@ -17,9 +17,52 @@ services:
   redis:
     image: redis:latest
     container_name: redis-nest-project
+    restart: always
     ports:
       - '6379:6379'
+
+# --------------------------
+  # Kafka in KRaft mode (single-node)
+  # Confluent image supports KRaft since newer versions.
+  # --------------------------
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
     restart: always
+    ports:
+      - '9092:9092'   # broker listener (external)
+      - '29092:29092' # alternate advertised listener if needed
+    env_file:
+      - .env
+    environment:
+      # KRaft-specific settings — ใส่ค่าใน .env เพื่อสะดวก
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: ${KAFKA_PROCESS_ROLES}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: ${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP}
+      KAFKA_LISTENERS: ${KAFKA_LISTENERS}
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_CONTROLLER_QUORUM_VOTERS}
+      KAFKA_CONTROLLER_LISTENER_NAMES: ${KAFKA_CONTROLLER_LISTENER_NAMES}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_TRANSACTION_STATE_LOG_MIN_ISR}
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: ${KAFKA_AUTO_CREATE_TOPICS_ENABLE}
+      CLUSTER_ID: ${CLUSTER_ID}
+
+  # --------------------------
+  # Kafdrop: UI to inspect topics/messages
+  # --------------------------
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    restart: always
+    ports:
+      - '9000:9000'
+    environment:
+      KAFKA_BROKERCONNECT: 'kafka:9092'
+      JVM_OPTS: '-Xms32M -Xmx128M'
+    depends_on:
+      - kafka
 
 volumes:
   mongo-data:
