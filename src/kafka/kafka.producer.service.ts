@@ -15,7 +15,7 @@ export class KafkaService implements OnModuleInit {
 
     // สร้าง clientId แบบสุ่ม (เพื่อให้แต่ละ instance มี id ต่างกัน)
     // ใช้ randomUUID() เพื่อกันซ้ำเมื่อมีหลาย instance
-    const clientId = `nestjs-${randomUUID()}`;
+    const clientId = `nestjs-producer-${randomUUID()}`;
 
     // สร้าง Kafka client ผ่าน kafkajs โดยส่ง clientId และรายชื่อ brokers
     const kafka = new Kafka({
